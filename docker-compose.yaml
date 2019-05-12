@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  database:
+    image: postgres:11.2
+    restart: always
+    container_name: phishing-detection-db
+    environment:
+      POSTGRES_DB: phishing-detection
+    expose:
+      - "5432"
+    ports:
+      - "5432:5432"
