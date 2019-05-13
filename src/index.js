@@ -20,14 +20,24 @@ if (require.main === module) {
       alias: 'p',
       description: 'Path containing Phishtank csv files',
     })
-    .argv
+    .option('daemon', {
+      alias: 'd',
+      description: 'Run as daemon and query perioadically phishtank'
+    })
 
-    if (argv.init) {
-      if (!argv.csvFolder) {
-        throw new Error(`You have to specifiy folder containing csv files!`)
-      }
-      const dir = path.join(process.cwd(), argv.csvFolder)
-      phishtank.initFromCsv(dir).catch(err => logger.error(err))
+  if (argv.argv.init) {
+    if (!argv.argv.csvFolder) {
+      throw new Error(`You have to specifiy folder containing csv files!`)
     }
+    const dir = path.join(process.cwd(), argv.argv.csvFolder)
+    phishtank.initFromCsv(dir).catch(err => logger.error(err))
+    return
+  }
 
+  if (argv.argv.daemon) {
+    phishtank.queryPhishtankSite()
+    return
+  }
+
+  argv.showHelp()
 }

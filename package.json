@@ -19,6 +19,7 @@
     "cross-env": "^5.2.0",
     "pg": "^7.10.0",
     "reflect-metadata": "^0.1.13",
+    "request-promise": "^4.2.4",
     "typeorm": "^0.2.16",
     "yargs": "^13.2.2"
   },

@@ -11,6 +11,8 @@ const dbConn = require('../database')
 const path = require('path')
 const fs = require('fs')
 const typeorm = require('typeorm')
+const apiKey = require('../config').phishtankApiKey
+const request = require('request-promise')
 
 /**
  * Sets the 'online' param to false for records which aren't in current records.
@@ -167,6 +169,19 @@ const initFromCsv = async folder => {
   }
 }
 
+const queryPhishtankSite = async () => {
+  const url = `http://data.phishtank.com/data/${apiKey}/online-valid.json`
+  logger.info(`Querying ${url}`)
+  const recordsString = await request(url)
+  const recordsObj = JSON.parse(recordsString)
+  logger.info(typeof recordsObj)
+  logger.info(recordsObj[1])
+
+  console.log('1')
+
+}
+
 module.exports = {
-  initFromCsv
+  initFromCsv,
+  queryPhishtankSite,
 }
