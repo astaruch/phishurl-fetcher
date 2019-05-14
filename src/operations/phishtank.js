@@ -103,7 +103,8 @@ const processCsv = async (filename, connection) => {
 
   const currentDate = getDateFromFilename(filename)
   const currentIsoDate = currentDate.toISOString()
-  const lastDate = getLastUpdated(repositoryLastUpdated, 'phishtank')
+
+  const lastDate = await getLastUpdated(repositoryLastUpdated, 'phishtank')
 
   if (lastDate >= currentDate) {
     logger.info(`Database was updated with newer file than give.`)
