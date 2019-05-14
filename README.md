@@ -19,8 +19,15 @@ If this is first run of a program, we can initialize database as following:
     $ node src/index.js -i -p CSV_DIRECTORY | pino-pretty
 
 
-#### Running as a deamon
+#### Fetching phishtank
 
-> TODO: fetch request
+You have to register on [Phishtank](https://www.phishtank.com/) to obtain API key and then store it into environmental
+variable `PHISHTANK_API_KEY`. Then you can run:
+
+    $ node src/index.js -q | pino-pretty
+
+For more info consult help:
+
+    $ node src/index.js -h
 
 

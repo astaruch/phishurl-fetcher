@@ -20,9 +20,9 @@ if (require.main === module) {
       alias: 'p',
       description: 'Path containing Phishtank csv files',
     })
-    .option('daemon', {
-      alias: 'd',
-      description: 'Run as daemon and query perioadically phishtank'
+    .option('query', {
+      alias: 'q',
+      description: 'Query the phishtank site and update database'
     })
 
   if (argv.argv.init) {
@@ -34,8 +34,8 @@ if (require.main === module) {
     return
   }
 
-  if (argv.argv.daemon) {
-    phishtank.queryPhishtankSite()
+  if (argv.argv.query) {
+    phishtank.fetchFromPhishtankSite()
     return
   }
 

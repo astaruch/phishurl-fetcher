@@ -6,4 +6,5 @@ tmp/
 temp/
 lib
 build
-compiledJS 
+compiledJS
+.env

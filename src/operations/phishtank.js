@@ -64,8 +64,9 @@ const inserPhishtankRecordsToDb = async (manager, newRecords, dbIds) => {
   const newDbRecords = objectRecordsToDbRecords(recordsToInsert)
 
   logger.info(`Inserting total ${newDbRecords.length} records to database.`)
-  // insert only 1k rows at once (in transaction)
+
   await manager.transaction(async transactionalEntityManager => {
+    // insert only 1k rows at once (in transaction)
     let recordsSplice = newDbRecords.splice(0, 1000)
     while (recordsSplice.length > 0) {
       logger.info(`Inserting ${recordsSplice.length} rows.`)
@@ -79,6 +80,7 @@ const inserPhishtankRecordsToDb = async (manager, newRecords, dbIds) => {
     }
   })
 }
+
 /**
  * Gets the date from the filename which should looks like '../data/csv/2018-03-02.csv'
  * @param {*} absolutePath absolute path
@@ -91,26 +93,14 @@ const getDateFromFilename = absolutePath => {
 }
 
 /**
- * Process a CSV file from a given path and insert values to database.
- * @param {string} filename path to csv
- * @param {Connection} connection database connection
+ * Insert/update new records into database
+ * @param {Connection} connection typeorm connection
+ * @param {[]} newRecords records obtained from csv or online json
+ * @param {string} currentISODate current date
  * @returns {*}
  */
-const processCsv = async (filename, connection) => {
-  logger.info(`Processing ${filename}...`)
-  const repositoryLastUpdated = await connection.manager.getRepository(LastUpdated)
+const doUpdate = async (connection, newRecords, currentISODate) => {
   const repositoryPhishtank = await connection.manager.getRepository(Phishtank)
-
-  const currentDate = getDateFromFilename(filename)
-  const currentIsoDate = currentDate.toISOString()
-
-  const lastDate = await getLastUpdated(repositoryLastUpdated, 'phishtank')
-
-  if (lastDate >= currentDate) {
-    logger.info(`Database was updated with newer file than a given. Skipping this file.`)
-    return
-  }
-
   const db = await repositoryPhishtank
     .createQueryBuilder('phishtank')
     .getMany()
@@ -123,8 +113,6 @@ const processCsv = async (filename, connection) => {
     .filter(dbRow => dbRow && dbRow.online)
     .map(dbRow => dbRow.phishId)
 
-  const newRecords = obtainCsv(filename)
-
   const newRecordsIds = newRecords
     .filter(row => row)
     .map(row => Number(row.phish_id))
@@ -132,7 +120,7 @@ const processCsv = async (filename, connection) => {
   // 1.
   // If phish_id is in db (with online: true) and it's not newRecords
   // it wen offline right now.
-  await setOfflineIds(repositoryPhishtank, dbOnlineIds, newRecordsIds, currentIsoDate)
+  await setOfflineIds(repositoryPhishtank, dbOnlineIds, newRecordsIds, currentISODate)
 
   // 2.
   // Insert all new records into database where phish_id isnt't already there
@@ -140,9 +128,37 @@ const processCsv = async (filename, connection) => {
 
   // 3.
   // Update timestamp in database
-  logger.info(`Updating table lastUpdated to ${currentIsoDate}.`)
+  const repositoryLastUpdated = await connection.manager.getRepository(LastUpdated)
+  logger.info(`Updating table lastUpdated to ${currentISODate}.`)
   await repositoryLastUpdated
-    .update({ tableName: 'phishtank' }, { lastUpdated: currentIsoDate })
+    .update({ tableName: 'phishtank' }, { lastUpdated: currentISODate })
+
+  logger.info('OK')
+}
+
+/**
+ * Process a CSV file from a given path and insert values to database.
+ * @param {string} filename path to csv
+ * @param {Connection} connection database connection
+ * @returns {*}
+ */
+const processCsv = async (filename, connection) => {
+  logger.info(`Processing: ${filename}`)
+  const repositoryLastUpdated = await connection.manager.getRepository(LastUpdated)
+
+  const currentDate = getDateFromFilename(filename)
+  const currentIsoDate = currentDate.toISOString()
+
+  const lastDate = await getLastUpdated(repositoryLastUpdated, 'phishtank')
+
+  if (lastDate >= currentDate) {
+    logger.info(`Skipping: database has newer records than a given file`)
+    return
+  }
+
+  const newRecords = obtainCsv(filename)
+
+  await doUpdate(connection, newRecords, currentIsoDate)
 }
 
 /**
@@ -170,17 +186,24 @@ const initFromCsv = async folder => {
   }
 }
 
-const queryPhishtankSite = async () => {
+/**
+ * Query current state of phishtank service and update our database accordingly.
+ * You have to provide an apiKey.
+ * @returns {*}
+ */
+const fetchFromPhishtankSite = async () => {
   const url = `http://data.phishtank.com/data/${apiKey}/online-valid.json`
   logger.info(`Querying ${url}`)
   const recordsString = await request(url)
   const recordsObj = JSON.parse(recordsString)
-  logger.info(recordsObj[0])
 
+  const connection = await dbConn
+  const date = new Date().toISOString()
 
+  await doUpdate(connection, recordsObj, date)
 }
 
 module.exports = {
   initFromCsv,
-  queryPhishtankSite,
+  fetchFromPhishtankSite
 }
