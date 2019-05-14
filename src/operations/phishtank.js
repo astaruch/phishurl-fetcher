@@ -31,11 +31,11 @@ const setOfflineIds = async (repository, onlineDbIds, newIds, endTime) => {
 }
 
 /**
- * Transform the list of object from csv into database format
- * @param {*} records from csv
- * @returns {*} transformed records
+ * Transform the list of object into database format
+ * @param {*} records array of object representation of record
+ * @returns {*} array of db representation of record
  */
-const csvRecordsToDbRecords = records => records.map(row => ({
+const objectRecordsToDbRecords = records => records.map(row => ({
   phishId: Number(row.phish_id),
   url: row.url,
   phishDetailUrl: row.phish_detail_url,
@@ -48,20 +48,20 @@ const csvRecordsToDbRecords = records => records.map(row => ({
 /**
  * Inserts records into database
  * @param {*} manager typeorm manager to database
- * @param {*} csvRecords new records to insert
+ * @param {*} newRecords new records to insert
  * @param {*} dbIds IDs of records which are already in database
  * @returns {*}
  */
-const insertPhishtankRecordsFromCsv = async (manager, csvRecords, dbIds) => {
-  const idsToInsert = csvRecords
+const inserPhishtankRecordsToDb = async (manager, newRecords, dbIds) => {
+  const idsToInsert = newRecords
     .filter(row => row)
     .map(row => Number(row.phish_id))
     .filter(newId => !dbIds.includes(newId))
 
-  const recordsToInsert = csvRecords
+  const recordsToInsert = newRecords
     .filter(row => row && idsToInsert.includes(Number(row.phish_id)))
 
-  const newDbRecords = csvRecordsToDbRecords(recordsToInsert)
+  const newDbRecords = objectRecordsToDbRecords(recordsToInsert)
 
   logger.info(`Inserting total ${newDbRecords.length} records to database.`)
   // insert only 1k rows at once (in transaction)
@@ -107,7 +107,7 @@ const processCsv = async (filename, connection) => {
   const lastDate = await getLastUpdated(repositoryLastUpdated, 'phishtank')
 
   if (lastDate >= currentDate) {
-    logger.info(`Database was updated with newer file than give.`)
+    logger.info(`Database was updated with newer file than a given. Skipping this file.`)
     return
   }
 
@@ -123,20 +123,20 @@ const processCsv = async (filename, connection) => {
     .filter(dbRow => dbRow && dbRow.online)
     .map(dbRow => dbRow.phishId)
 
-  const csv = obtainCsv(filename)
+  const newRecords = obtainCsv(filename)
 
-  const csvIds = csv
-    .filter(csvRow => csvRow)
-    .map(csvRow => Number(csvRow.phish_id))
+  const newRecordsIds = newRecords
+    .filter(row => row)
+    .map(row => Number(row.phish_id))
 
   // 1.
-  // If phish_id is in db (with online: true) and it's not in csv,
+  // If phish_id is in db (with online: true) and it's not newRecords
   // it wen offline right now.
-  await setOfflineIds(repositoryPhishtank, dbOnlineIds, csvIds, currentIsoDate)
+  await setOfflineIds(repositoryPhishtank, dbOnlineIds, newRecordsIds, currentIsoDate)
 
   // 2.
   // Insert all new records into database where phish_id isnt't already there
-  await insertPhishtankRecordsFromCsv(typeorm.getManager(), csv, dbIds)
+  await inserPhishtankRecordsToDb(typeorm.getManager(), newRecords, dbIds)
 
   // 3.
   // Update timestamp in database
@@ -175,10 +175,8 @@ const queryPhishtankSite = async () => {
   logger.info(`Querying ${url}`)
   const recordsString = await request(url)
   const recordsObj = JSON.parse(recordsString)
-  logger.info(typeof recordsObj)
-  logger.info(recordsObj[1])
+  logger.info(recordsObj[0])
 
-  console.log('1')
 
 }
 
