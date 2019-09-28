@@ -2,7 +2,7 @@
 
 if (!process.env.PHISHTANK_API_KEY) {
   // eslint-disable-next-line global-require
-  require('dotenv').load()
+  require('dotenv').config()
 }
 
 module.exports = {
