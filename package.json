@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@strv/eslint-config-node": "^1.0.4",
-    "csv-parse": "^4.4.1",
+    "csv-parse": "^4.4.6",
     "eslint": "^5.16.0",
     "npm": "^6.9.0",
     "pino": "^5.12.2",
