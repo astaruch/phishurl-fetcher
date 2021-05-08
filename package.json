@@ -22,7 +22,7 @@
     "reflect-metadata": "^0.1.13",
     "request": "^2.88.0",
     "request-promise": "^4.2.4",
-    "typeorm": "^0.2.16",
+    "typeorm": "^0.2.25",
     "yargs": "^13.2.2"
   },
   "devDependencies": {
